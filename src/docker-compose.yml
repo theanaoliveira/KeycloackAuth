@@ -1,8 +1,13 @@
-version: '3.4'
+version: '3.7'
 
 services:
-  keycloackauth.api:
-    image: ${DOCKER_REGISTRY-}keycloackauthapi
+  keycloackauth-api:
+    image: ${DOCKER_REGISTRY-}keycloackauth-api
     build:
       context: .
       dockerfile: KeycloackAuth.Api/Dockerfile
+    networks:
+      - keycloak-network
+
+networks:
+  keycloak-network:

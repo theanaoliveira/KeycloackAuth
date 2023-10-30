@@ -1,25 +1,43 @@
+using Keycloak.AuthServices.Authentication;
+using Keycloak.AuthServices.Authorization;
+using Keycloak.AuthServices.Sdk.Admin;
+using Microsoft.AspNetCore.Rewrite;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddRazorPages();
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var authenticationOptions = builder.Configuration.GetSection(KeycloakAuthenticationOptions.Section).Get<KeycloakAuthenticationOptions>();
+var authorizationOptions = builder.Configuration.GetSection(KeycloakProtectionClientOptions.Section).Get<KeycloakProtectionClientOptions>();
+
+builder.Services.AddKeycloakAuthentication(authenticationOptions);
+builder.Services.AddKeycloakAuthorization(authorizationOptions);
+
+var adminClientOptions = builder.Configuration.GetSection(KeycloakAdminClientOptions.Section).Get<KeycloakAdminClientOptions>();
+
+builder.Services.AddKeycloakAdminHttpClient(adminClientOptions);
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-app.UseStaticFiles();
-
-app.UseRouting();
-
 app.UseAuthorization();
-
-app.MapRazorPages();
+app.MapControllers();
+app.UseRewriter(Rewrite());
 
 app.Run();
+
+RewriteOptions Rewrite()
+{
+    var option = new RewriteOptions();
+    option.AddRedirect("^$", "swagger");
+
+    return option;
+}
