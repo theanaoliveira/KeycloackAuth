@@ -1,31 +1,45 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.OpenApi.Models;
+using OpenIddict.Client;
 using OpenIddict.Validation.AspNetCore;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
+using static OpenIddict.Abstractions.OpenIddictConstants;
 
 Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Debug()
-            .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-            .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
-            .MinimumLevel.Override("System", LogEventLevel.Warning)
-            .MinimumLevel.Override("Microsoft.AspNetCore.Authentication", LogEventLevel.Debug)
             .Enrich.FromLogContext()
             .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level}] {SourceContext}{NewLine}{Message:lj}{NewLine}{Exception}{NewLine}", theme: AnsiConsoleTheme.Code)
             .CreateLogger();
 
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseSerilog(Log.Logger);
 
 var server = Environment.GetEnvironmentVariable("KEYCLOAK_SERVER_URL");
 var realm = Environment.GetEnvironmentVariable("KEYCLOAK_REALM");
+var issuer = $"{server}/realms/{realm}";
 var clientId = Environment.GetEnvironmentVariable("CLIENT_ID");
 var clientSecret = Environment.GetEnvironmentVariable("CLIENT_SECRET");
+
 
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+});
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    
+}).AddCookie(options =>
+{
+    options.LoginPath = "/login";
+    options.LogoutPath = "/logout";
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(50);
+    options.SlidingExpiration = false;
 });
 
 builder.Services.AddOpenIddict()
@@ -33,7 +47,7 @@ builder.Services.AddOpenIddict()
     {
         // Note: the validation handler uses OpenID Connect discovery
         // to retrieve the issuer signing keys used to validate tokens.
-        options.SetIssuer($"{server}/realms/{realm}");
+        options.SetIssuer(issuer);
 
         // Configure the validation handler to use introspection and register the client
         // credentials used when communicating with the remote introspection endpoint.
@@ -51,6 +65,48 @@ builder.Services.AddOpenIddict()
 
         // Register the ASP.NET Core host.
         options.UseAspNetCore();
+    }).AddClient(options =>
+    {
+
+        // Note: this sample uses the authorization code and refresh token
+        // flows, but you can enable the other flows if necessary.
+        options.AllowAuthorizationCodeFlow()
+                .AllowRefreshTokenFlow();
+
+        // Register the signing and encryption credentials used to protect
+        // sensitive data like the state tokens produced by OpenIddict.
+        options.AddEphemeralEncryptionKey()
+                .AddEphemeralSigningKey();
+
+        // Register the ASP.NET Core host and configure the ASP.NET Core-specific options.
+        options.UseAspNetCore()
+                .EnableStatusCodePagesIntegration()
+                .EnableRedirectionEndpointPassthrough()
+                .DisableTransportSecurityRequirement()
+                .EnablePostLogoutRedirectionEndpointPassthrough();
+
+        // Register the System.Net.Http integration and use the identity of the current
+        // assembly as a more specific user agent, which can be useful when dealing with
+        // providers that use the user agent as a way to throttle requests (e.g Reddit).
+        options.UseSystemNetHttp()
+                .SetProductInformation(typeof(Program).Assembly);
+
+
+        options.DisableTokenStorage();
+        // Add a client registration matching the client application definition in the server project.
+
+        options.AddRegistration(new OpenIddictClientRegistration
+        {
+            RegistrationId = "keycloak",
+            Issuer = new Uri(issuer, UriKind.Absolute),
+            ProviderName = "keycloak",
+            ClientId = clientId,
+            ClientSecret = clientSecret,
+            Scopes = { Scopes.Email, Scopes.Profile, Scopes.OpenId },
+
+            RedirectUri = new Uri("callback/login/keycloak", UriKind.Relative),
+            PostLogoutRedirectUri = new Uri("callback/logout/keycloak", UriKind.Relative),
+        });
     });
 
 builder.Services.AddControllers();
@@ -59,7 +115,7 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Test", Version = "v1" });
 
-    // Configuração para autenticação OAuth2 com Keycloak
+    // Configuraï¿½ï¿½o para autenticaï¿½ï¿½o OAuth2 com Keycloak
     c.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
     {
         Type = SecuritySchemeType.OAuth2,
@@ -72,7 +128,7 @@ builder.Services.AddSwaggerGen(c =>
                 Scopes = new Dictionary<string, string>
                 {
                     { "email", "email" },
-                    { "oauth-api-client-scope", "Access the API" },
+                    { "roles", "Access the API" },
                     { "profile", "profile" }
                 }
             }
