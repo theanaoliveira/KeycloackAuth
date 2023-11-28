@@ -9,10 +9,10 @@ services:
       - 54217:80
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      KEYCLOAK_SERVER_URL: ""
-      KEYCLOAK_REALM: sisfolha-dev
-      CLIENT_ID: "oauth-api"
-      CLIENT_SECRET: "b2qdFcSzjhHW5ONsxrgYYyQQiYtrX2tB"
+      KEYCLOAK_SERVER_URL: {{YOUR_SERVER_URL}}
+      KEYCLOAK_REALM: {{YOUR_REALM}}
+      CLIENT_ID: {{YOUR_CLIENT_ID}}
+      CLIENT_SECRET: {{YOUR_CLIENT_SECRET}}
     networks:
       - keycloak-network
 

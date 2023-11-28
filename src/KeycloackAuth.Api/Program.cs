@@ -33,17 +33,17 @@ builder.Services.AddOpenIddict()
     {
         // Note: the validation handler uses OpenID Connect discovery
         // to retrieve the issuer signing keys used to validate tokens.
-        options.SetIssuer($"");
+        options.SetIssuer($"{server}/realms/{realm}");
 
         // Configure the validation handler to use introspection and register the client
         // credentials used when communicating with the remote introspection endpoint.
-        options.SetClientId(clientId);
-        options.SetClientSecret(clientSecret);
+        //options.SetClientId(clientId);
+        //options.SetClientSecret(clientSecret);
         options.UseIntrospection().SetClientId(clientId).SetClientSecret(clientSecret);
 
         options.Configure(options =>
         {
-            options.TokenValidationParameters.ValidIssuers = new List<string> { $"" };
+            options.TokenValidationParameters.ValidIssuers = new List<string> { $"{server}/realms/{realm}" };
         });
 
         // Register the System.Net.Http integration.
