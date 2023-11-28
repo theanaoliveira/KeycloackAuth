@@ -1,5 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OpenIddict.Validation.AspNetCore;
+using static OpenIddict.Client.AspNetCore.OpenIddictClientAspNetCoreConstants;
 
 namespace KeycloackAuth.Api.Controllers
 {
@@ -8,10 +12,16 @@ namespace KeycloackAuth.Api.Controllers
     public class TestController : ControllerBase
     {
         [HttpGet]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = $"{CookieAuthenticationDefaults.AuthenticationScheme},{OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme}")]
         public IActionResult Test()
         {
-            return Ok();
+        var dict = new Dictionary<string, string>();
+        foreach (var claim in User.Claims)
+        {
+            dict.TryAdd(claim.Type, claim.Value);
+        }
+        
+        return Ok(dict);
         }
     }
 }

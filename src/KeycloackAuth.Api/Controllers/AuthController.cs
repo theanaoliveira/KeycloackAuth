@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using OpenIddict.Abstractions;
 using OpenIddict.Client;
 using OpenIddict.Client.AspNetCore;
+using OpenIddict.Validation.AspNetCore;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 using static OpenIddict.Client.AspNetCore.OpenIddictClientAspNetCoreConstants;
 
@@ -195,16 +196,18 @@ public class AuthController : ControllerBase
         return Redirect(result!.Properties!.RedirectUri ?? "/");
     }
 
-    [Authorize, HttpGet("~/Sso")]
+    [Authorize(AuthenticationSchemes = $"{CookieAuthenticationDefaults.AuthenticationScheme},{OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme}"),
+     HttpGet("~/Sso")]
     public IActionResult Sso()
     {
         var dict = new Dictionary<string, string>();
         foreach (var claim in User.Claims)
         {
-            dict.Add(claim.Type, claim.Value);
+            dict.TryAdd(claim.Type, claim.Value);
         }
         
-        var token = HttpContext.GetTokenAsync(Tokens.BackchannelAccessToken).Result ?? string.Empty;
+        //Just for test propouse please do not expose access_token =)
+        var token = HttpContext.GetTokenAsync(CookieAuthenticationDefaults.AuthenticationScheme, Tokens.BackchannelAccessToken).Result ?? string.Empty;
 
         dict.Add("token", token);
 

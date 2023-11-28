@@ -27,13 +27,7 @@ var clientSecret = Environment.GetEnvironmentVariable("CLIENT_SECRET");
 
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
-});
-
-builder.Services.AddAuthentication(options =>
-{
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    
 }).AddCookie(options =>
 {
     options.LoginPath = "/login";
@@ -67,7 +61,6 @@ builder.Services.AddOpenIddict()
         options.UseAspNetCore();
     }).AddClient(options =>
     {
-
         // Note: this sample uses the authorization code and refresh token
         // flows, but you can enable the other flows if necessary.
         options.AllowAuthorizationCodeFlow()
@@ -103,7 +96,7 @@ builder.Services.AddOpenIddict()
             ClientId = clientId,
             ClientSecret = clientSecret,
             Scopes = { Scopes.Email, Scopes.Profile, Scopes.OpenId },
-
+            
             RedirectUri = new Uri("callback/login/keycloak", UriKind.Relative),
             PostLogoutRedirectUri = new Uri("callback/logout/keycloak", UriKind.Relative),
         });
