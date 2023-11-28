@@ -8,55 +8,13 @@ services:
     ports:
       - 54217:80
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-    networks:
-      - keycloak-network
-    
-  mssql:
-    image: mcr.microsoft.com/mssql/server
-    ports:
-      - "1433:1433"
-    volumes:
-      - sqldata:/var/opt/mssql
-    environment:
-      - ACCEPT_EULA=Y
-      - SA_PASSWORD=Password!23
-      - MSSQL_PID=Developer
-    networks:
-      - keycloak-network
-
-  mssqlscripts:
-    image: mcr.microsoft.com/mssql-tools
-    depends_on:
-      - mssql
-    command: /bin/bash -c 'until /opt/mssql-tools/bin/sqlcmd -S mssql -U sa -P "Password!23" -Q "create database Keycloak"; do sleep 5; done'
-    networks:
-      - keycloak-network
-
-  keycloak:
-    image: quay.io/keycloak/keycloak:22.0.5
-    command: ['start-dev']
-    depends_on:
-      - mssql
-      - mssqlscripts
-    ports:
-      - "8080:8080"
-    environment:
-      - KEYCLOAK_ADMIN=admin
-      - KEYCLOAK_ADMIN_PASSWORD=admin
-      - DB_VENDOR=mssql
-      - DB_USER=sa
-      - DB_PASSWORD=Password!23
-      - DB_ADDR=mssql
-      - DB_DATABASE=Keycloak
-    volumes:
-      - keycloakdata:/tmp
+      ASPNETCORE_ENVIRONMENT: Development
+      KEYCLOAK_SERVER_URL: http://localhost:8080/keycloak
+      KEYCLOAK_REALM: dev
+      CLIENT_ID: "oauth-api"
+      CLIENT_SECRET: "DoGBgIVzsTV4HOhIBZgFDHmj7g232AbD"
     networks:
       - keycloak-network
 
 networks:
   keycloak-network:
-  
-volumes:
-  sqldata:  
-  keycloakdata:
