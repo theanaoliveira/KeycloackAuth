@@ -9,10 +9,10 @@ services:
       - 54217:80
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      KEYCLOAK_SERVER_URL: http://localhost:8080/keycloak
-      KEYCLOAK_REALM: dev
+      KEYCLOAK_SERVER_URL: ""
+      KEYCLOAK_REALM: sisfolha-dev
       CLIENT_ID: "oauth-api"
-      CLIENT_SECRET: "DoGBgIVzsTV4HOhIBZgFDHmj7g232AbD"
+      CLIENT_SECRET: "b2qdFcSzjhHW5ONsxrgYYyQQiYtrX2tB"
     networks:
       - keycloak-network
 

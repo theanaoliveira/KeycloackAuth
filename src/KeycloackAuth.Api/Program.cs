@@ -1,8 +1,20 @@
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Rewrite;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using OpenIddict.Validation.AspNetCore;
+using Serilog;
+using Serilog.Events;
+using Serilog.Sinks.SystemConsole.Themes;
+
+Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Debug()
+            .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+            .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
+            .MinimumLevel.Override("System", LogEventLevel.Warning)
+            .MinimumLevel.Override("Microsoft.AspNetCore.Authentication", LogEventLevel.Debug)
+            .Enrich.FromLogContext()
+            .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level}] {SourceContext}{NewLine}{Message:lj}{NewLine}{Exception}{NewLine}", theme: AnsiConsoleTheme.Code)
+            .CreateLogger();
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,23 +23,34 @@ var realm = Environment.GetEnvironmentVariable("KEYCLOAK_REALM");
 var clientId = Environment.GetEnvironmentVariable("CLIENT_ID");
 var clientSecret = Environment.GetEnvironmentVariable("CLIENT_SECRET");
 
-builder.Services
-    .AddAuthentication(options =>
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+});
+
+builder.Services.AddOpenIddict()
+    .AddValidation(options =>
     {
-        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
-    })
-    .AddOpenIdConnect(options =>
-    {
-        options.Authority = $"{server}/realms/{realm}";
-        options.ClientId = clientId;
-        options.ClientSecret = clientSecret;
-        options.ResponseType = "code";
-        options.SaveTokens = true;
-        options.Scope.Add("openid");
-        options.Scope.Add("profile");
-        options.RequireHttpsMetadata = false;
-        options.MetadataAddress = $"{server}/realms/{realm}/.well-known/openid-configuration";
+        // Note: the validation handler uses OpenID Connect discovery
+        // to retrieve the issuer signing keys used to validate tokens.
+        options.SetIssuer($"");
+
+        // Configure the validation handler to use introspection and register the client
+        // credentials used when communicating with the remote introspection endpoint.
+        options.SetClientId(clientId);
+        options.SetClientSecret(clientSecret);
+        options.UseIntrospection().SetClientId(clientId).SetClientSecret(clientSecret);
+
+        options.Configure(options =>
+        {
+            options.TokenValidationParameters.ValidIssuers = new List<string> { $"" };
+        });
+
+        // Register the System.Net.Http integration.
+        options.UseSystemNetHttp();
+
+        // Register the ASP.NET Core host.
+        options.UseAspNetCore();
     });
 
 builder.Services.AddControllers();
@@ -48,9 +71,10 @@ builder.Services.AddSwaggerGen(c =>
                 TokenUrl = new Uri($"{server}/realms/{realm}/protocol/openid-connect/token"),
                 Scopes = new Dictionary<string, string>
                 {
-                    { "openid", "OpenID scope" },
-                    { "profile", "Profile scope" },
-                    // Adicione outros escopos conforme necessário
+                    { "email", "email" },
+                    { "oauth-api-client-scope", "Access the API" },
+                    { "profile", "profile" }
+                    // Adicione outros scopes conforme necessário
                 }
             }
         }
@@ -67,10 +91,12 @@ builder.Services.AddSwaggerGen(c =>
                     Id = "oauth2"
                 }
             },
-            Array.Empty<string>()
+            new string[] { }
         }
     });
 });
+
+
 
 var app = builder.Build();
 
@@ -80,9 +106,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI(s =>
     {
-        s.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
-        s.OAuthClientId("oauth-api");
-        s.OAuthAppName("Swagger UI");
+        s.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
+        s.OAuthClientId(clientId);
+        s.OAuthClientSecret(clientSecret);
     });
 }
 
