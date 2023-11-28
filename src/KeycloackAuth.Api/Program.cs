@@ -74,7 +74,6 @@ builder.Services.AddSwaggerGen(c =>
                     { "email", "email" },
                     { "oauth-api-client-scope", "Access the API" },
                     { "profile", "profile" }
-                    // Adicione outros scopes conforme necessário
                 }
             }
         }
@@ -107,8 +106,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(s =>
     {
         s.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
-        s.OAuthClientId(clientId);
-        s.OAuthClientSecret(clientSecret);
     });
 }
 
