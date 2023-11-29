@@ -37,6 +37,7 @@ builder.Services.AddAuthentication(options =>
 {
     options.LoginPath = "/login";
     options.LogoutPath = "/logout";
+    options.Cookie.Path = "/";
     options.ExpireTimeSpan = TimeSpan.FromMinutes(50);
     options.SlidingExpiration = false;
 });
