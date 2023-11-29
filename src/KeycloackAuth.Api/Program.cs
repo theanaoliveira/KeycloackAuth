@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Rewrite;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OpenIddict.Client;
 using OpenIddict.Validation.AspNetCore;
@@ -24,6 +25,8 @@ var issuer = $"{server}/realms/{realm}";
 var clientId = Environment.GetEnvironmentVariable("CLIENT_ID");
 var clientSecret = Environment.GetEnvironmentVariable("CLIENT_SECRET");
 
+var encryptionKey = Environment.GetEnvironmentVariable("ENCRYPTION_KEY");
+var signKey = Environment.GetEnvironmentVariable("SIGN_KEY");
 
 builder.Services.AddAuthentication(options =>
 {
@@ -36,7 +39,10 @@ builder.Services.AddAuthentication(options =>
     options.SlidingExpiration = false;
 });
 
-builder.Services.AddOpenIddict()
+builder.Services
+    .AddOpenIddict().AddCore(config => {
+        
+    })
     .AddValidation(options =>
     {
         // Note: the validation handler uses OpenID Connect discovery
@@ -68,8 +74,6 @@ builder.Services.AddOpenIddict()
 
         // Register the signing and encryption credentials used to protect
         // sensitive data like the state tokens produced by OpenIddict.
-        options.AddEphemeralEncryptionKey()
-                .AddEphemeralSigningKey();
 
         // Register the ASP.NET Core host and configure the ASP.NET Core-specific options.
         options.UseAspNetCore()
@@ -84,6 +88,8 @@ builder.Services.AddOpenIddict()
         options.UseSystemNetHttp()
                 .SetProductInformation(typeof(Program).Assembly);
 
+        options.AddEncryptionKey(new SymmetricSecurityKey(Convert.FromBase64String(encryptionKey ?? "l8erjrKYzmTrk7gIUqNvho3LwuX7faYoXzzUkLLmvF0=")));
+        options.AddSigningKey(new SymmetricSecurityKey(Convert.FromBase64String(signKey ?? "LpaRsZTmQkPSBf18Hp8U4LRGokXObHE6iybEsNcpbk4=")));
 
         options.DisableTokenStorage();
         // Add a client registration matching the client application definition in the server project.
