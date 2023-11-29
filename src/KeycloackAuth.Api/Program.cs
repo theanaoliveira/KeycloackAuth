@@ -28,6 +28,8 @@ var clientSecret = Environment.GetEnvironmentVariable("CLIENT_SECRET");
 var encryptionKey = Environment.GetEnvironmentVariable("ENCRYPTION_KEY");
 var signKey = Environment.GetEnvironmentVariable("SIGN_KEY");
 
+var basePath = Environment.GetEnvironmentVariable("BASE_PATH");
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -154,6 +156,7 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+app.UsePathBase(basePath);
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -163,18 +166,19 @@ if (app.Environment.IsDevelopment())
         s.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
     });
 }
+app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.UseRewriter(Rewrite());
+// app.UseRewriter(Rewrite());
 
 app.Run();
 
-RewriteOptions Rewrite()
-{
-    var option = new RewriteOptions();
-    option.AddRedirect("^$", "swagger");
+// RewriteOptions Rewrite()
+// {
+//     var option = new RewriteOptions();
+//     option.AddRedirect("^$", "swagger");
 
-    return option;
-}
+//     return option;
+// }
