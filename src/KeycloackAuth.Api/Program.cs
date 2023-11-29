@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -30,6 +31,11 @@ var signKey = Environment.GetEnvironmentVariable("SIGN_KEY");
 
 var basePath = Environment.GetEnvironmentVariable("BASE_PATH");
 
+if (!Directory.Exists("keys/"))
+{
+    Directory.CreateDirectory("keys/");
+}
+builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo("keys/"));
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
